@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -11,9 +11,7 @@ namespace ChatApplication
         public void Configure(IApplicationBuilder app, IServiceProvider serviceProvider)
         {
             app.UseWebSockets();
-
-            //app.MapWebSocketManager("/ws", serviceProvider.GetService<ChatMessageHandler>());
-            app.MapWebSocketManager("/test", serviceProvider.GetService<TestMessageHandler>());
+            app.MapWebSocketManager("/chat", serviceProvider.GetService<ChatHandler>());
 
             app.UseStaticFiles();
         }

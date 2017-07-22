@@ -1,59 +1,30 @@
 ﻿using System;
-using System.Net.WebSockets;
-using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
-
-namespace EchoConsoleClient
+using WebSocketManager.Client;
+public class Program
 {
-    public class Program
+    private static Connection _connection;
+    public static void Main(string[] args)
     {
-        public static void Main(string[] args)
+        StartConnectionAsync();
+
+        _connection.On("receiveMessage", (arguments) =>
         {
-            RunWebSockets().GetAwaiter().GetResult();
-        }
+            Console.WriteLine($"{arguments[0]} said: {arguments[1]}");
+        });
 
-        private static async Task RunWebSockets()
-        {
-            var client = new ClientWebSocket();
-            await client.ConnectAsync(new Uri("ws://localhost:5000/test"), CancellationToken.None);
+        Console.ReadLine();
+        StopConnectionAsync();
+    }
 
-            Console.WriteLine("Connected!");
+    public static async Task StartConnectionAsync()
+    {
+        _connection = new Connection();
+        await _connection.StartConnectionAsync("ws://localhost:65110/chat");
+    }
 
-            var sending = Task.Run(async() => 
-            {
-                string line;
-                while((line = Console.ReadLine()) != null && line != String.Empty)
-                {
-                    var bytes = Encoding.UTF8.GetBytes(line);
-                    await client.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, true, CancellationToken.None);
-                }
-
-                await client.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
-            });
-
-            var receiving = Receiving(client);
-
-            await Task.WhenAll(sending, receiving);
-        }
-
-        private static async Task Receiving(ClientWebSocket client)
-        {
-            var buffer = new byte[1024 * 4];
-
-            while(true)
-            {
-                var result = await client.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
-
-                if(result.MessageType == WebSocketMessageType.Text)
-                    Console.WriteLine(Encoding.UTF8.GetString(buffer, 0, result.Count));
-
-                else if(result.MessageType == WebSocketMessageType.Close)
-                {
-                    await client.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
-                    break;
-                }
-            }
-        }
+    public static async Task StopConnectionAsync()
+    {
+        await _connection.StopConnectionAsync();
     }
 }
